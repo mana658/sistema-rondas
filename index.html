@@ -146,14 +146,14 @@
             btn.disabled = true;
 
             try {
-                /* 
+                
                 AQUI ENTRA O FETCH REAL NO FUTURO:
-                const resposta = await fetch('URL_DO_SEU_BANCO_DE_DADOS_AQUI', {
+                const resposta = await fetch('https://api.sheetbest.com/sheets/c94cf39c-5f14-4ddc-9107-6abc6b12612c', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(dados)
                 });
-                */
+                
 
                 // Simulação de tempo de rede (1.5 segundos)
                 await new Promise(resolve => setTimeout(resolve, 1500));
