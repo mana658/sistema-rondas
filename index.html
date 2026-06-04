@@ -154,10 +154,6 @@
                     body: JSON.stringify(dados)
                 });
                 
-
-                // Simulação de tempo de rede (1.5 segundos)
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
                 alert(`Sucesso! Ronda em ${local} registrada às ${horaAtual}.`);
                 
                 // Limpa os campos e volta para o início
