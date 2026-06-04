@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Rondas</title>
+    <style>
+        /* Estilos Globais - Foco em Mobile e Dark Mode */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #121212; color: #ffffff; display: flex; justify-content: center; height: 100vh; }
+        .app-container { width: 100%; max-width: 400px; padding: 20px; position: relative; }
+        
+        /* Controle de Telas da SPA */
+        .screen { display: none; flex-direction: column; height: 100%; justify-content: center; }
+        .screen.active { display: flex; }
+        
+        /* Tipografia e Espaçamentos */
+        h1, h2 { text-align: center; margin-bottom: 20px; color: #4CAF50; }
+        p { text-align: center; margin-bottom: 30px; color: #aaaaaa; }
+        
+        /* Formulários e Botões */
+        input, select, textarea { 
+            width: 100%; padding: 15px; margin-bottom: 15px; 
+            border-radius: 8px; border: 1px solid #333; 
+            background-color: #1e1e1e; color: #fff; font-size: 16px;
+        }
+        button { 
+            width: 100%; padding: 16px; border: none; border-radius: 8px; 
+            font-size: 18px; font-weight: bold; cursor: pointer; margin-bottom: 15px;
+            transition: 0.2s;
+        }
+        
+        /* Cores dos Botões */
+        .btn-primary { background-color: #4CAF50; color: white; }
+        .btn-primary:active { background-color: #45a049; }
+        .btn-danger { background-color: #f44336; color: white; }
+        .btn-danger:active { background-color: #d32f2f; }
+        .btn-secondary { background-color: #333; color: white; }
+        
+        /* Header das telas internas */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .btn-back { width: auto; padding: 10px 15px; margin-bottom: 0; font-size: 14px; background-color: transparent; border: 1px solid #555;}
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <!-- TELA 1: LOGIN -->
+        <div id="screen-login" class="screen active">
+            <h1>🛡️ SegApp</h1>
+            <p>Controle Operacional de Rondas</p>
+            <input type="password" id="pin-input" placeholder="Digite seu PIN (Ex: 1234)" inputmode="numeric">
+            <button class="btn-primary" onclick="fazerLogin()">Entrar no Sistema</button>
+        </div>
+
+        <!-- TELA 2: DASHBOARD PRINCIPAL -->
+        <div id="screen-dashboard" class="screen">
+            <div class="header">
+                <h2>Painel de Controle</h2>
+                <button class="btn-back" onclick="sair()">Sair</button>
+            </div>
+            <p id="saudacao">Bom serviço!</p>
+            <button class="btn-primary" style="padding: 30px;" onclick="navegarPara('screen-ronda')">✅ Registrar Ronda</button>
+            <button class="btn-danger" style="padding: 30px;" onclick="navegarPara('screen-ocorrencia')">⚠️ Reportar Ocorrência</button>
+        </div>
+
+        <!-- TELA 3: REGISTRO DE RONDA -->
+        <div id="screen-ronda" class="screen">
+            <div class="header">
+                <h2>Nova Ronda</h2>
+                <button class="btn-back" onclick="navegarPara('screen-dashboard')">Voltar</button>
+            </div>
+            <select id="local-ronda">
+                <option value="">Selecione o Local...</option>
+                <option value="Portão Principal">Portão Principal</option>
+                <option value="Perímetro Externo">Perímetro Externo</option>
+                <option value="Garagem">Garagem</option>
+            </select>
+            <input type="text" id="obs-ronda" placeholder="Observação (Opcional)">
+            <button class="btn-primary" onclick="enviarDadosRonda()">Confirmar Ronda</button>
+        </div>
+
+        <!-- TELA 4: REGISTRO DE OCORRÊNCIA -->
+        <div id="screen-ocorrencia" class="screen">
+            <div class="header">
+                <h2>Ocorrência</h2>
+                <button class="btn-back" onclick="navegarPara('screen-dashboard')">Voltar</button>
+            </div>
+            <select id="tipo-ocorrencia">
+                <option value="">Tipo de Incidente...</option>
+                <option value="Dano Patrimonial">Dano Patrimonial</option>
+                <option value="Indivíduo Suspeito">Indivíduo Suspeito</option>
+                <option value="Lâmpada Queimada">Lâmpada Queimada / Manutenção</option>
+            </select>
+            <!-- Abre a câmera do celular diretamente -->
+            <input type="file" accept="image/*" capture="environment" id="foto-ocorrencia">
+            <textarea id="desc-ocorrencia" rows="4" placeholder="Descreva os detalhes..."></textarea>
+            <button class="btn-danger" onclick="enviarDadosOcorrencia()">Enviar Alerta</button>
+        </div>
+
+    </div>
+
+    <!-- LÓGICA JAVASCRIPT (Single Page Application e Fetch API) -->
+    <script>
+        // Função para alternar entre as telas sem recarregar a página
+        function navegarPara(idTelaDestino) {
+            document.querySelectorAll('.screen').forEach(tela => {
+                tela.classList.remove('active');
+            });
+            document.getElementById(idTelaDestino).classList.add('active');
+        }
+
+        // Simulação de Autenticação
+        function fazerLogin() {
+            const pin = document.getElementById('pin-input').value;
+            if (pin === '1234') { // Senha fictícia para o MVP
+                document.getElementById('pin-input').value = '';
+                navegarPara('screen-dashboard');
+            } else {
+                alert('PIN incorreto. Tente novamente.');
+            }
+        }
+
+        function sair() {
+            navegarPara('screen-login');
+        }
+
+        // Função assíncrona utilizando Fetch API (Fase Act do seu PDCA)
+        async function enviarDadosRonda() {
+            const local = document.getElementById('local-ronda').value;
+            const obs = document.getElementById('obs-ronda').value;
+            
+            if (!local) {
+                alert('Por favor, selecione um local.');
+                return;
+            }
+
+            // Captura a hora exata do celular
+            const horaAtual = new Date().toLocaleTimeString('pt-BR');
+            const dados = { local: local, observacao: obs, hora: horaAtual, tipo: 'Ronda Padrão' };
+
+            // Modificar o botão para dar feedback visual
+            const btn = document.querySelector('#screen-ronda .btn-primary');
+            btn.innerText = 'Enviando...';
+            btn.disabled = true;
+
+            try {
+                /* 
+                AQUI ENTRA O FETCH REAL NO FUTURO:
+                const resposta = await fetch('URL_DO_SEU_BANCO_DE_DADOS_AQUI', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+                */
+
+                // Simulação de tempo de rede (1.5 segundos)
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                alert(`Sucesso! Ronda em ${local} registrada às ${horaAtual}.`);
+                
+                // Limpa os campos e volta para o início
+                document.getElementById('local-ronda').value = '';
+                document.getElementById('obs-ronda').value = '';
+                navegarPara('screen-dashboard');
+
+            } catch (erro) {
+                alert('Erro de conexão. O registro será salvo offline (Futura implementação).');
+            } finally {
+                btn.innerText = 'Confirmar Ronda';
+                btn.disabled = false;
+            }
+        }
+
+        // Lógica similar para ocorrências
+        async function enviarDadosOcorrencia() {
+            const tipo = document.getElementById('tipo-ocorrencia').value;
+            if (!tipo) {
+                alert('Selecione o tipo de ocorrência.');
+                return;
+            }
+            
+            alert('Enviando ocorrência com foto em segundo plano...');
+            document.getElementById('tipo-ocorrencia').value = '';
+            document.getElementById('desc-ocorrencia').value = '';
+            document.getElementById('foto-ocorrencia').value = '';
+            navegarPara('screen-dashboard');
+        }
+    </script>
+</body>
+</html>
