@@ -46,7 +46,6 @@
 
     <div class="app-container">
 
-        <!-- TELA 1: LOGIN -->
         <div id="screen-login" class="screen active">
             <h1>🛡️ SegApp</h1>
             <p>Controle Operacional de Rondas</p>
@@ -54,7 +53,6 @@
             <button class="btn-primary" onclick="fazerLogin()">Entrar no Sistema</button>
         </div>
 
-        <!-- TELA 2: DASHBOARD PRINCIPAL -->
         <div id="screen-dashboard" class="screen">
             <div class="header">
                 <h2>Painel de Controle</h2>
@@ -65,7 +63,6 @@
             <button class="btn-danger" style="padding: 30px;" onclick="navegarPara('screen-ocorrencia')">⚠️ Reportar Ocorrência</button>
         </div>
 
-        <!-- TELA 3: REGISTRO DE RONDA -->
         <div id="screen-ronda" class="screen">
             <div class="header">
                 <h2>Nova Ronda</h2>
@@ -81,7 +78,6 @@
             <button class="btn-primary" onclick="enviarDadosRonda()">Confirmar Ronda</button>
         </div>
 
-        <!-- TELA 4: REGISTRO DE OCORRÊNCIA -->
         <div id="screen-ocorrencia" class="screen">
             <div class="header">
                 <h2>Ocorrência</h2>
@@ -93,7 +89,6 @@
                 <option value="Indivíduo Suspeito">Indivíduo Suspeito</option>
                 <option value="Lâmpada Queimada">Lâmpada Queimada / Manutenção</option>
             </select>
-            <!-- Abre a câmera do celular diretamente -->
             <input type="file" accept="image/*" capture="environment" id="foto-ocorrencia">
             <textarea id="desc-ocorrencia" rows="4" placeholder="Descreva os detalhes..."></textarea>
             <button class="btn-danger" onclick="enviarDadosOcorrencia()">Enviar Alerta</button>
@@ -101,9 +96,11 @@
 
     </div>
 
-    <!-- LÓGICA JAVASCRIPT (Single Page Application e Fetch API) -->
     <script>
-        // Função para alternar entre as telas sem recarregar a página
+        const SHEETBEST_URL = 'https://api.sheetbest.com/sheets/c94cf39c-5f14-4ddc-9107-6abc6b12612c';
+        const IMGBB_API_KEY = '7e21f0af5cb8c63ed8e5df2e7b7c49cf';
+
+        // Função para alternar entre as telas
         function navegarPara(idTelaDestino) {
             document.querySelectorAll('.screen').forEach(tela => {
                 tela.classList.remove('active');
@@ -114,7 +111,7 @@
         // Simulação de Autenticação
         function fazerLogin() {
             const pin = document.getElementById('pin-input').value;
-            if (pin === '1234') { // Senha fictícia para o MVP
+            if (pin === '1234') { 
                 document.getElementById('pin-input').value = '';
                 navegarPara('screen-dashboard');
             } else {
@@ -126,7 +123,7 @@
             navegarPara('screen-login');
         }
 
-        // Função assíncrona utilizando Fetch API (Fase Act do seu PDCA)
+        // --- REGISTRO DE RONDA ---
         async function enviarDadosRonda() {
             const local = document.getElementById('local-ronda').value;
             const obs = document.getElementById('obs-ronda').value;
@@ -136,118 +133,118 @@
                 return;
             }
 
-            // Captura a hora exata do celular
             const horaAtual = new Date().toLocaleTimeString('pt-BR');
-            const dados = { local: local, observacao: obs, hora: horaAtual, tipo: 'Ronda Padrão' };
+            const dados = { 
+                local: local, 
+                observacao: obs, 
+                hora: horaAtual, 
+                tipo: 'Ronda Padrão',
+                foto: '' 
+            };
 
-            // Modificar o botão para dar feedback visual
             const btn = document.querySelector('#screen-ronda .btn-primary');
             btn.innerText = 'Enviando...';
             btn.disabled = true;
 
             try {
-                
-                //AQUI ENTRA O FETCH REAL NO FUTURO:
-                const resposta = await fetch('https://api.sheetbest.com/sheets/c94cf39c-5f14-4ddc-9107-6abc6b12612c', {
+                const resposta = await fetch(SHEETBEST_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(dados)
                 });
                 
+                if (!resposta.ok) throw new Error("Erro na API do Sheetbest");
+
                 alert(`Sucesso! Ronda em ${local} registrada às ${horaAtual}.`);
                 
-                // Limpa os campos e volta para o início
+                // Limpa os campos e volta
                 document.getElementById('local-ronda').value = '';
                 document.getElementById('obs-ronda').value = '';
                 navegarPara('screen-dashboard');
 
             } catch (erro) {
-                alert('Erro de conexão. O registro será salvo offline (Futura implementação).');
+                console.error("Erro na Ronda:", erro);
+                alert('Erro de conexão. Tente novamente.');
             } finally {
                 btn.innerText = 'Confirmar Ronda';
                 btn.disabled = false;
             }
         }
 
-        // Lógica similar para ocorrências
+        // --- REGISTRO DE OCORRÊNCIA COM FOTO ---
         async function enviarDadosOcorrencia() {
-    const tipo = document.getElementById('tipo-ocorrencia').value;
-    const desc = document.getElementById('desc-ocorrencia').value;
-    const fotoInput = document.getElementById('foto-ocorrencia');
+            const tipo = document.getElementById('tipo-ocorrencia').value;
+            const desc = document.getElementById('desc-ocorrencia').value;
+            const fotoInput = document.getElementById('foto-ocorrencia');
 
-    if (!tipo) {
-        alert('Selecione o tipo de ocorrência.');
-        return;
-    }
+            if (!tipo) {
+                alert('Selecione o tipo de ocorrência.');
+                return;
+            }
 
-    // Modificar o botão para dar feedback visual (evita cliques duplos)
-    const btn = document.querySelector('#screen-ocorrencia .btn-danger');
-    btn.innerText = 'Enviando...';
-    btn.disabled = true;
+            const btn = document.querySelector('#screen-ocorrencia .btn-danger');
+            btn.innerText = 'Processando Foto...';
+            btn.disabled = true;
 
-    try {
-        let imageUrl = null;
+            try {
+                let imageUrl = '';
 
-        // Verifica se o usuário tirou/anexou uma foto
-        if (fotoInput.files.length > 0) {
-            const file = fotoInput.files[0];
-            const formData = new FormData();
-            formData.append('image', file);
+                // 1. Lógica de Upload para o ImgBB
+                if (fotoInput.files.length > 0) {
+                    const file = fotoInput.files[0];
+                    const formData = new FormData();
+                    formData.append('image', file);
+                    
+                    const uploadResponse = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                        method: 'POST',
+                        body: formData
+                    });
 
-            // COLOQUE SUA CHAVE DO IMGBB AQUI
-            const imgBBKey = '7e21f0af5cb8c63ed8e5df2e7b7c49cf'; 
-            
-            // 1. Upload da imagem para o ImgBB
-            const uploadResponse = await fetch(`https://api.imgbb.com/1/upload?key=${imgBBKey}`, {
-                method: 'POST',
-                body: formData
-            });
+                    const uploadData = await uploadResponse.json();
+                    
+                    if (uploadData.success) {
+                        imageUrl = uploadData.data.url;
+                    } else {
+                        throw new Error("Falha no upload da imagem para o ImgBB.");
+                    }
+                }
 
-            const uploadData = await uploadResponse.json();
-            
-            if (uploadData.success) {
-                imageUrl = uploadData.data.url; // Pega o link público da foto gerado
-            } else {
-                throw new Error("Falha ao fazer upload da imagem no ImgBB");
+                // 2. Envio dos dados para o Sheetbest
+                btn.innerText = 'Salvando Dados...';
+                
+                const horaAtual = new Date().toLocaleTimeString('pt-BR');
+                const dados = { 
+                    local: "Ocorrência", 
+                    observacao: desc, 
+                    hora: horaAtual, 
+                    tipo: tipo, 
+                    foto: imageUrl 
+                };
+
+                const respostaSheetbest = await fetch(SHEETBEST_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+
+                if (!respostaSheetbest.ok) throw new Error("Falha ao salvar no Google Sheets.");
+
+                alert('Ocorrência registrada com sucesso!');
+                
+                // Limpa os campos e volta para o início
+                document.getElementById('tipo-ocorrencia').value = '';
+                document.getElementById('desc-ocorrencia').value = '';
+                document.getElementById('foto-ocorrencia').value = '';
+                navegarPara('screen-dashboard');
+
+            } catch (erro) {
+                console.error("Erro na Ocorrência:", erro);
+                alert('Erro ao enviar ocorrência: ' + erro.message);
+            } finally {
+                btn.innerText = 'Enviar Alerta';
+                btn.disabled = false;
             }
         }
-
-        // 2. Prepara os dados para o Google Sheets
-        const horaAtual = new Date().toLocaleTimeString('pt-BR');
-        const dados = { 
-            local: "Ocorrência", // Você pode adicionar um select de local nessa tela depois se quiser
-            observacao: desc, 
-            hora: horaAtual, 
-            tipo: tipo, 
-            foto: imageUrl // Envia a URL da foto como texto
-        };
-
-        // 3. Envia para o Sheetbest
-        const respostaSheetbest = await fetch('https://api.sheetbest.com/sheets/c94cf39c-5f14-4ddc-9107-6abc6b12612c', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dados)
-        });
-
-        if (!respostaSheetbest.ok) throw new Error("Falha ao salvar no Sheets");
-
-        alert('Ocorrência enviada com sucesso!');
-        
-        // Limpa os campos e volta para o dashboard
-        document.getElementById('tipo-ocorrencia').value = '';
-        document.getElementById('desc-ocorrencia').value = '';
-        document.getElementById('foto-ocorrencia').value = '';
-        navegarPara('screen-dashboard');
-
-    } catch (erro) {
-        console.error(erro);
-        alert('Erro ao enviar ocorrência: ' + erro.message);
-    } finally {
-        // Restaura o botão
-        btn.innerText = 'Enviar Alerta';
-        btn.disabled = false;
-    }
-}
     </script>
 </body>
 </html>
