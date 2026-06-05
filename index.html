@@ -171,18 +171,83 @@
 
         // Lógica similar para ocorrências
         async function enviarDadosOcorrencia() {
-            const tipo = document.getElementById('tipo-ocorrencia').value;
-            if (!tipo) {
-                alert('Selecione o tipo de ocorrência.');
-                return;
-            }
+    const tipo = document.getElementById('tipo-ocorrencia').value;
+    const desc = document.getElementById('desc-ocorrencia').value;
+    const fotoInput = document.getElementById('foto-ocorrencia');
+
+    if (!tipo) {
+        alert('Selecione o tipo de ocorrência.');
+        return;
+    }
+
+    // Modificar o botão para dar feedback visual (evita cliques duplos)
+    const btn = document.querySelector('#screen-ocorrencia .btn-danger');
+    btn.innerText = 'Enviando...';
+    btn.disabled = true;
+
+    try {
+        let imageUrl = null;
+
+        // Verifica se o usuário tirou/anexou uma foto
+        if (fotoInput.files.length > 0) {
+            const file = fotoInput.files[0];
+            const formData = new FormData();
+            formData.append('image', file);
+
+            // COLOQUE SUA CHAVE DO IMGBB AQUI
+            const imgBBKey = '7e21f0af5cb8c63ed8e5df2e7b7c49cf'; 
             
-            alert('Enviando ocorrência com foto em segundo plano...');
-            document.getElementById('tipo-ocorrencia').value = '';
-            document.getElementById('desc-ocorrencia').value = '';
-            document.getElementById('foto-ocorrencia').value = '';
-            navegarPara('screen-dashboard');
+            // 1. Upload da imagem para o ImgBB
+            const uploadResponse = await fetch(`https://api.imgbb.com/1/upload?key=${imgBBKey}`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const uploadData = await uploadResponse.json();
+            
+            if (uploadData.success) {
+                imageUrl = uploadData.data.url; // Pega o link público da foto gerado
+            } else {
+                throw new Error("Falha ao fazer upload da imagem no ImgBB");
+            }
         }
+
+        // 2. Prepara os dados para o Google Sheets
+        const horaAtual = new Date().toLocaleTimeString('pt-BR');
+        const dados = { 
+            local: "Ocorrência", // Você pode adicionar um select de local nessa tela depois se quiser
+            observacao: desc, 
+            hora: horaAtual, 
+            tipo: tipo, 
+            foto: imageUrl // Envia a URL da foto como texto
+        };
+
+        // 3. Envia para o Sheetbest
+        const respostaSheetbest = await fetch('https://api.sheetbest.com/sheets/c94cf39c-5f14-4ddc-9107-6abc6b12612c', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+        });
+
+        if (!respostaSheetbest.ok) throw new Error("Falha ao salvar no Sheets");
+
+        alert('Ocorrência enviada com sucesso!');
+        
+        // Limpa os campos e volta para o dashboard
+        document.getElementById('tipo-ocorrencia').value = '';
+        document.getElementById('desc-ocorrencia').value = '';
+        document.getElementById('foto-ocorrencia').value = '';
+        navegarPara('screen-dashboard');
+
+    } catch (erro) {
+        console.error(erro);
+        alert('Erro ao enviar ocorrência: ' + erro.message);
+    } finally {
+        // Restaura o botão
+        btn.innerText = 'Enviar Alerta';
+        btn.disabled = false;
+    }
+}
     </script>
 </body>
 </html>
